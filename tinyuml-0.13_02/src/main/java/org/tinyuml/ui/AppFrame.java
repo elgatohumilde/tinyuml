@@ -19,6 +19,7 @@
  */
 package org.tinyuml.ui;
 
+import java.util.List;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Desktop;
@@ -51,6 +52,9 @@ import org.tinyuml.draw.DiagramElement;
 import org.tinyuml.draw.LabelChangeListener;
 import org.tinyuml.model.UmlModel;
 import org.tinyuml.util.AppCommandListener;
+import org.tinyuml.umldraw.structure.ClassElement;
+import org.tinyuml.umldraw.structure.ComponentElement;
+import org.tinyuml.umldraw.structure.PackageElement;
 import org.tinyuml.umldraw.structure.StructureDiagram;
 import org.tinyuml.model.UmlModelImpl;
 import org.tinyuml.ui.commands.ModelReader;
@@ -266,8 +270,32 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    * {@inheritDoc}
    */
   public void mouseMoved(EditorMouseEvent event) {
-    coordLabel.setText(String.format("(%.1f, %.1f)", event.getX(),
-      event.getY()));
+    int package_cnt = 0;
+    int class_cnt = 0;
+    int component_cnt = 0;
+
+    List<DiagramElement> children = currentEditor.getDiagram().getChildren();
+
+    for (DiagramElement child : children) {
+      if (child instanceof PackageElement) {
+        package_cnt++;
+      } else if (child instanceof ClassElement) {
+        class_cnt++;
+      } else if (child instanceof ComponentElement) {
+        component_cnt++;
+      }
+    }
+
+    int total_cnt = package_cnt + class_cnt + component_cnt;
+
+    coordLabel.setText(
+        String.format("(%.1f, %.1f) Total Items : %02d; Package:%02d, Class:%02d; Component: %02d",
+            event.getX(),
+            event.getY(),
+            total_cnt,
+            package_cnt,
+            class_cnt,
+            component_cnt));
   }
 
   /**
