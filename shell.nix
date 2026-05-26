@@ -3,7 +3,7 @@
 }:
 pkgs.mkShell {
   packages = with pkgs; [
-    jdk8_headless
+    openjdk8
     maven
   ];
 }
