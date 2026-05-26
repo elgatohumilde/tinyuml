@@ -19,7 +19,6 @@
  */
 package org.tinyuml.ui;
 
-import java.util.List;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Desktop;
@@ -96,6 +95,8 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   private Collection<DiagramElement> lastCopiedElements;
   private transient Map<String, MethodCall> selectorMap =
     new HashMap<String, MethodCall>();
+  private int classCnt, packageCnt, componentCnt;
+  private double lastMouseX, lastMouseY;
 
 
   /**
@@ -270,32 +271,32 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
    * {@inheritDoc}
    */
   public void mouseMoved(EditorMouseEvent event) {
-    int package_cnt = 0;
-    int class_cnt = 0;
-    int component_cnt = 0;
+    lastMouseX = event.getX();
+    lastMouseY = event.getY();
+    updateCountLabel();
+  }
 
-    List<DiagramElement> children = currentEditor.getDiagram().getChildren();
+  private void updateCountLabel() {
+    int total = classCnt + packageCnt + componentCnt;
+    coordLabel.setText(
+        String.format("(%.1f, %.1f) Total Items: %02d; Package: %02d, Class: %02d; Component: %02d",
+            lastMouseX, lastMouseY, total, packageCnt, classCnt, componentCnt));
+  }
 
-    for (DiagramElement child : children) {
+  private void recomputeCounts() {
+    classCnt = 0;
+    packageCnt = 0;
+    componentCnt = 0;
+    for (DiagramElement child : currentEditor.getDiagram().getChildren()) {
       if (child instanceof PackageElement) {
-        package_cnt++;
+        packageCnt++;
       } else if (child instanceof ClassElement) {
-        class_cnt++;
+        classCnt++;
       } else if (child instanceof ComponentElement) {
-        component_cnt++;
+        componentCnt++;
       }
     }
-
-    int total_cnt = package_cnt + class_cnt + component_cnt;
-
-    coordLabel.setText(
-        String.format("(%.1f, %.1f) Total Items : %02d; Package:%02d, Class:%02d; Component: %02d",
-            event.getX(),
-            event.getY(),
-            total_cnt,
-            package_cnt,
-            class_cnt,
-            component_cnt));
+    updateCountLabel();
   }
 
   /**
@@ -308,17 +309,33 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
   /**
    * {@inheritDoc}
    */
-  public void elementAdded(DiagramEditor editor) {
+  public void elementAdded(DiagramEditor editor, DiagramElement element) {
     // spring loading is implemented here
     staticToolbarManager.doClick("SELECT_MODE");
     updateMenuAndToolbars(editor);
+    if (element instanceof PackageElement) {
+      packageCnt++;
+    } else if (element instanceof ClassElement) {
+      classCnt++;
+    } else if (element instanceof ComponentElement) {
+      componentCnt++;
+    }
+    updateCountLabel();
   }
 
   /**
    * {@inheritDoc}
    */
-  public void elementRemoved(DiagramEditor editor) {
+  public void elementRemoved(DiagramEditor editor, DiagramElement element) {
     updateMenuAndToolbars(editor);
+    if (element instanceof PackageElement) {
+      packageCnt--;
+    } else if (element instanceof ClassElement) {
+      classCnt--;
+    } else if (element instanceof ComponentElement) {
+      componentCnt--;
+    }
+    updateCountLabel();
   }
 
   /**
@@ -452,6 +469,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
       diagram.setLabelText("Class diagram 1");
       tabbedPane.removeAll();
       createEditor(diagram);
+      recomputeCounts();
     }
   }
 
@@ -558,6 +576,7 @@ implements EditorStateListener, AppCommandListener, SelectionListener {
           umlModel = ModelReader.getInstance().readModel(currentFile);
           tabbedPane.removeAll();
           createEditor((StructureDiagram) umlModel.getDiagrams().get(0));
+          recomputeCounts();
           updateFrameTitle();
         } catch (IOException ex) {
           JOptionPane.showMessageDialog(this, ex.getMessage(),
